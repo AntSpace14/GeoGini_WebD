@@ -77,18 +77,26 @@ Begin your response below:
 
     // 🤖 Send prompt (with or without image) to Hugging Face
     const chatCompletion = await client.chatCompletion({
-      provider: "nebius",
-      model: "mistralai/Mistral-Small-3.1-24B-Instruct-2503",
-      messages: [{ role: "user", content }],
-    });
-
-    return res.json({
-      answer: chatCompletion.choices[0].message.content,
-    });
-  } catch (err) {
-    console.error("ask-mistral error:", err);
-    return res.status(500).json({ error: "Something went wrong" });
-  }
+      model: "unsloth/Mistral-Small-3.2-24B-Instruct-2506",
+      messages: [
+        {
+            role: "user",
+            content: [
+                {
+                    type: "text",
+                    text: "Describe this image in one sentence.",
+                },
+                {
+                    type: "image_url",
+                    image_url: {
+                        url: "https://cdn.britannica.com/61/93061-050-99147DCE/Statue-of-Liberty-Island-New-York-Bay.jpg",
+                    },
+                },
+            ],
+        },
+    ],
 });
+
+console.log(chatCompletion.choices[0].message);
 
 export default router;
