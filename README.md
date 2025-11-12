@@ -28,12 +28,12 @@ Draw regions on the map, extract real metrics like **NDVI**, **Land Surface Temp
 
 | Tech                | Description                                      |
 |---------------------|--------------------------------------------------|
-| 🌐 **Frontend**      | React + Vite + Tailwind + ShadCN UI             |
+| 🌐 **Frontend**      | React + Vite + Tailwind + ShadCN UI, deployed on Netlify.             |
 | 🌎 **GEE**           | Google Earth Engine for real-time metric data   |
 | 🧠 **AI**            | Hugging Face Inference API (Mistral model)      |
 | ☁️ **Cloudinary**    | Image upload and hosting                        |
 | 📡 **postMessage**   | Secure iframe messaging between GEE & frontend  |
-| 🔒 **Backend**       | Express (Node.js) API for AI and image uploads  |
+| 🔒 **Backend**       | Express (Node.js) API for AI and image uploads, deployed on Render.  |
 
 ---
 
