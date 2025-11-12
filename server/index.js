@@ -1,7 +1,8 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import askMistral from "./routes/ask-mistral.js";
+const askMistral = require("./routes/ask-mistral");
+
 
 dotenv.config();
 
