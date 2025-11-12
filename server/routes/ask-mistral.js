@@ -99,5 +99,6 @@ Begin your response below:
 
 console.log(chatCompletion.choices[0].message);
 
-module.exports = router;
+export default router;
+
 
