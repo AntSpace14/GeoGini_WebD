@@ -44,7 +44,7 @@ Population Density: ${metrics.popDensity} people per 100 sq. meter grid
 --- Instructions ---
 1. If an image is provided, integrate it to support the explanation — describe visual features that correlate with the metrics.
 2. Use the above region data to explain patterns, landforms, or environmental conditions relevant to the user's question.
-3.  Be specific, concise, and avoid guessing. Say "Data not available" where information is missing or unclear.
+3. Be specific, concise, and avoid guessing. Say "Data not available" where information is missing or unclear.
 4. When possible, include relevant scientific concepts (e.g., aridity, vegetation health, human impact).
 5. Never fabricate facts or names of places if not explicitly mentioned.
 
@@ -54,6 +54,7 @@ Begin your response below:
     const content = [{ type: "text", text: baseContext }];
 
     // 📷 Upload image if present
+    let imageUrl = null;
     if (req.file) {
       const streamUpload = () =>
         new Promise((resolve, reject) => {
@@ -68,26 +69,35 @@ Begin your response below:
         });
 
       const result = await streamUpload();
+      imageUrl = result.secure_url;
 
       content.push({
         type: "image_url",
-        image_url: { url: result.secure_url },
+        image_url: { url: imageUrl },
       });
     }
 
-    // 🤖 Send prompt (with or without image) to Hugging Face
+    // 🧠 Use Meta Llama-4 Scout (multimodal) for reasoning on image + text
     const chatCompletion = await client.chatCompletion({
-      provider: "nebius",
-      model: "mistralai/Mistral-Small-3.1-24B-Instruct-2503",
-      messages: [{ role: "user", content }],
+      model: "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+      messages: [
+        {
+          role: "user",
+          content: content,
+        },
+      ],
     });
 
+    const answer = chatCompletion?.choices?.[0]?.message?.content || "No response.";
+
     return res.json({
-      answer: chatCompletion.choices[0].message.content,
+      answer,
+      model: "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+      imageUsed: imageUrl || null,
     });
   } catch (err) {
     console.error("ask-mistral error:", err);
-    return res.status(500).json({ error: "Something went wrong" });
+    return res.status(500).json({ error: "Something went wrong", details: err.message });
   }
 });
 
