@@ -44,7 +44,7 @@ Population Density: ${metrics.popDensity} people per 100 sq. meter grid
 --- Instructions ---
 1. If an image is provided, integrate it to support the explanation — describe visual features that correlate with the metrics.
 2. Use the above region data to explain patterns, landforms, or environmental conditions relevant to the user's question.
-3. Be specific, concise, and avoid guessing. Say "Data not available" where information is missing or unclear.
+3.  Be specific, concise, and avoid guessing. Say "Data not available" where information is missing or unclear.
 4. When possible, include relevant scientific concepts (e.g., aridity, vegetation health, human impact).
 5. Never fabricate facts or names of places if not explicitly mentioned.
 
@@ -77,32 +77,18 @@ Begin your response below:
 
     // 🤖 Send prompt (with or without image) to Hugging Face
     const chatCompletion = await client.chatCompletion({
-      model: "unsloth/Mistral-Small-3.2-24B-Instruct-2506",
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: "Describe this image in one sentence.",
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: "https://cdn.britannica.com/61/93061-050-99147DCE/Statue-of-Liberty-Island-New-York-Bay.jpg",
-              },
-            },
-          ],
-        },
-      ],
+      provider: "nebius",
+      model: "mistralai/Mistral-Small-3.1-24B-Instruct-2503",
+      messages: [{ role: "user", content }],
     });
 
-    console.log(chatCompletion.choices[0].message);
-    res.json({ response: chatCompletion.choices[0].message });
-  } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({ error: error.message });
+    return res.json({
+      answer: chatCompletion.choices[0].message.content,
+    });
+  } catch (err) {
+    console.error("ask-mistral error:", err);
+    return res.status(500).json({ error: "Something went wrong" });
   }
-}); // ✅ closes router.post
+});
 
-export default router; // ✅ now correctly outside everything
+export default router;
