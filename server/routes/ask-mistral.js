@@ -25,35 +25,18 @@ router.post("/", upload.single("image"), async (req, res) => {
     const prompt = req.body.prompt || "";
     const metrics = JSON.parse(req.body.metrics || "{}");
 
-    // 🧠 Build prompt content
-    const baseContext = `
-You are a geography expert helping your friend analyze a specific region based on scientific metrics and/or an image. Use only the data provided and the user’s question to generate a factual, educational response. Do not speculate or make assumptions beyond the data or image.
-
---- Region Data ---
-Latitude: ${metrics.lat}
-Longitude: ${metrics.lon}
-NDVI (Vegetation Index): ${metrics.ndvi}
-Land Surface Temperature (LST): ${metrics.lst} °C
-Rainfall (Annual): ${metrics.rainfall} mm
-Water Frequency (temporal distribution of surface water from 1984 to 2021): ${metrics.waterFreq} %
-Population Density: ${metrics.popDensity} people per 100 sq. meter grid
-
---- User Question ---
-"${prompt}"
-
---- Instructions ---
-1. If an image is provided, integrate it to support the explanation — describe visual features that correlate with the metrics.
-2. Use the above region data to explain patterns, landforms, or environmental conditions relevant to the user's question.
-3. Be specific, concise, and avoid guessing. Say "Data not available" where information is missing or unclear.
-4. When possible, include relevant scientific concepts (e.g., aridity, vegetation health, human impact).
-5. Never fabricate facts or names of places if not explicitly mentioned.
-
-Begin your response below:
+    // 📊 Prepare region data string
+    const regionData = `
+Latitude: ${metrics.lat || "N/A"}
+Longitude: ${metrics.lon || "N/A"}
+NDVI (Vegetation Index): ${metrics.ndvi || "N/A"}
+Land Surface Temperature (LST): ${metrics.lst || "N/A"} °C
+Rainfall (Annual): ${metrics.rainfall || "N/A"} mm
+Water Frequency (1984–2021): ${metrics.waterFreq || "N/A"} %
+Population Density: ${metrics.popDensity || "N/A"} people / 100 sq. meters
 `;
 
-    const content = [{ type: "text", text: baseContext }];
-
-    // 📷 Upload image if present
+    // 📷 Upload image to Cloudinary if provided
     let imageUrl = null;
     if (req.file) {
       const streamUpload = () =>
@@ -70,34 +53,74 @@ Begin your response below:
 
       const result = await streamUpload();
       imageUrl = result.secure_url;
-
-      content.push({
-        type: "image_url",
-        image_url: { url: imageUrl },
-      });
     }
 
-    // 🧠 Use Meta Llama-4 Scout (multimodal) for reasoning on image + text
+    // 🧠 Construct multimodal message structure for Llama-4 Scout
+    const messages = [
+      {
+        role: "system",
+        content: [
+          {
+            type: "text",
+            text: `
+You are a geography and environmental science expert.
+Analyze environmental patterns, landforms, and ecological conditions using the provided metrics and/or image.
+Always use scientific reasoning, real-world correlations, and educational tone.
+Avoid speculation; if information is missing, state “Data not available.”
+When an image is included, describe its visual environmental context (vegetation, terrain, land use, etc.).
+Provide a structured, well-developed answer — at least 3 paragraphs if enough context is available.
+            `,
+          },
+        ],
+      },
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: `
+Region Data:
+${regionData}
+
+Question:
+${prompt}
+
+Please analyze and explain this data scientifically in detail.
+            `,
+          },
+          ...(imageUrl
+            ? [
+                {
+                  type: "image_url",
+                  image_url: { url: imageUrl },
+                },
+              ]
+            : []),
+        ],
+      },
+    ];
+
+    // 🚀 Call the Hugging Face model (Llama 4 Scout supports multimodal)
     const chatCompletion = await client.chatCompletion({
       model: "meta-llama/Llama-4-Scout-17B-16E-Instruct",
-      messages: [
-        {
-          role: "user",
-          content: content,
-        },
-      ],
+      messages,
     });
 
-    const answer = chatCompletion?.choices?.[0]?.message?.content || "No response.";
+    const answer =
+      chatCompletion?.choices?.[0]?.message?.content?.trim() ||
+      "No response received.";
 
     return res.json({
-      answer,
+      success: true,
       model: "meta-llama/Llama-4-Scout-17B-16E-Instruct",
       imageUsed: imageUrl || null,
+      answer,
     });
   } catch (err) {
-    console.error("ask-mistral error:", err);
-    return res.status(500).json({ error: "Something went wrong", details: err.message });
+    console.error("AI route error:", err);
+    return res
+      .status(500)
+      .json({ success: false, error: "Something went wrong", details: err.message });
   }
 });
 
